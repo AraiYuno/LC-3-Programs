@@ -1,6 +1,17 @@
 ;=========================================================================================================
 ; Main
-;	
+;
+;  Description: This program accepts 5 single character input commands. 
+;   I: Insertion -> you will be prompted for 4 digit 16bit positive hexadecimal integer to be inserted. 
+;		    You must enter 0 for the first few digits if you want to enter lower integers. For ex)
+;		    9 = 0 0 0 9	
+;   R: Removal   -> You will be prompted for 4 digit 16 bit positive hexadecimal integer to be deleted from
+;                   the tree. You must specify leading 0's just like Insertion
+;   D: Depth     -> It will calculate and display the depth of the tree
+;   P: Print     -> Print will list all of the nodes in order.
+;   Q: Quit      -> Quit will halt the program
+;
+;   All the commands are implemented fully.
 ;=========================================================================================================
 ; R0 - I/O 
 ; R1 - pointer to the root of the tree
@@ -33,6 +44,11 @@ LoopMain
 	LD   R2, D
 	ADD  R2, R0, R2
 	BRz  calcDepth
+	BRz  calcDepth
+
+	LD   R2, R
+	ADD  R2, R0, R2
+	BRz  removeNode
 	BRnzp LoopMain
 
 
@@ -75,6 +91,24 @@ calcDepth
 	JSR  Print              ;Print the depth of the tree in hexadecimal integer
 	ADD  R6, R6, #1
 	BRnzp LoopMain
+
+removeNode
+	ADD  R6, R6, #-1         ;push one empty space for return value
+	JSR  ReadHexInt
+	LDR  R3, R6, #0
+
+        ADD  R6, R6, #1 	 ; remove space from return value
+
+	LEA  R1, ROOT
+	ADD  R6, R6, #-1         ;pramaeter: node* currNode, int data
+	STR  R1, R6, #0
+	ADD  R6, R6, #-1
+	STR  R3, R6, #0
+	ADD  R6, R6, #-1	
+	JSR  Remove
+	LDR  R3, R6, #0          ;R3 = node that was removed.
+	ADD  R6, R6, #3
+	BRnzp LoopMain 
 
 quitProgram	
 	LEA R0, EOP
@@ -132,13 +166,243 @@ nodeK   .FILL x6124
         .FILL 0
 
 ;=========================================================================================================
+; Remove
+;	params: CurrentNode( Root initially ), int data 
+;
+;	removes the node that has the same data as given data, and returns the removed node.
+;=========================================================================================================
+; Registers Dictionary
+;
+;
+Remove
+	ADD  R6, R6, #-1 ; push FP
+        
+	STR  R5, R6, #0
+        
+        
+	ADD  R5, R6, #1 ; update FP (point it to the old top of stack)
+     
+   
+        
+	ADD  R6, R6, #-1 ; push R1
+	STR  R1, R6, #0
+
+	ADD  R6, R6, #-1 ; push R2
+
+        STR  R2, R6, #0	
+
+	ADD  R6, R6, #-1 ; push R3
+        STR  R3, R6, #0	
+
+	ADD  R6, R6, #-1 ; push R4
+        STR  R4, R6, #0	
+	 
+	ADD  R6, R6, #-1 ; push R7
+        STR  R7, R6, #0	
+
+
+	LDR  R1, R5, #2  ;R1 = pointer to the current node
+	BRz  isNullReturn
+	LDR  R2, R1, #0  ;R2 = curr.data
+	LDR  R3, R5, #1  ;R3 = pData (parameter)
+	NOT  R2, R2
+	ADD  R2, R2, #1	 ;
+	ADD  R0, R2, R3  ; 
+	BRz  isEqual
+
+	ADD  R0, R0, #0  ;
+	BRp  keyIsLarger
+
+	LDR  R2, R1, #1          ;R2 = curr.left
+	ADD  R6, R6, #-1         ;pramaeter: node* currNode, int data
+	STR  R2, R6, #0
+	ADD  R6, R6, #-1
+	STR  R3, R6, #0
+	ADD  R6, R6, #-1	
+	JSR  Remove
+	LDR  R7, R6, #0          ;R3 = node that was removed.
+	ADD  R6, R6, #3
+	STR  R7, R1, #1		 ;curr.left = remove(curr->left, pData);
+	BRnzp isNullReturn
+keyIsLarger
+	LDR  R2, R1, #2		;R2 = curr.right
+	ADD  R6, R6, #-1
+	STR  R2, R6, #0
+	ADD  R6, R6, #-1
+	STR  R3, R6, #0
+	ADD  R6, R6, #-1
+	JSR  Remove
+	LDR  R7, R6, #0
+	ADD  R6, R6, #3		
+	STR  R7, R1, #2		;curr->right = remove( curr->right, pData );
+	BRnzp isNullReturn
+		
+
+isEqual ;in case that curr.data = pData 
+	LDR  R2, R1, #1        ;R2 = curr->left
+	BRnp elseIfRightIsNull ;if(curr->left == NULL)
+	LDR  R4, R1, #2        ;  R4(tempNode) = curr->right
+	AND  R0, R0, #0
+	STR  R0, R1, #0        ;free(curr)
+	ADD  R1, R4, #0        ;R1 = tempNode
+	BRnzp isNullReturn
+
+elseIfRightIsNull
+	LDR  R2, R1, #2        ;R2 = curr->right
+	BRnp bothNotNull       ;if(curr->right == NULL)
+	LDR  R4, R1, #1	       ;  R4(tempNode) = curr->left;
+	AND  R0, R0, #0
+	STR  R0, R1, #0	       ;free(curr)
+	ADD  R1, R4, #0        ;R1 = tempNode
+	BRnzp isNullReturn
+
+bothNotNull
+	ADD  R6, R6, #-1
+	LDR  R0, R5, #2        ;R0 = pointer to curr
+	LDR  R0, R0, #2	       ;R0 = curr->right
+	STR  R0, R6, #0
+	ADD  R6, R6, #-1       ;push one space for returning node
+	JSR  GetMinValueNode
+	LDR  R7, R6, #0        ;R7 = minNodeValue
+	ADD  R6, R6, #2
+	AND  R4, R4, #0
+	ADD  R4, R7, #0        ;R4 = pointer to tempNode(minNodeValue)
+	
+	LDR  R0, R5, #2     
+	LDR  R2, R4, #0        ;R2 = minNodeValue 
+	STR  R2, R0, #0        ;curr->data = minNode->data
+	
+	LDR  R2, R0, #2        ;R2 = curr->right
+	ADD  R6, R6, #-1
+	STR  R2, R6, #0
+	LDR  R2, R4, #0        ;R2 = minNodeValue
+	ADD  R6, R6, #-1
+	STR  R2, R6, #0
+	ADD  R6, R6, #-1
+	JSR  Remove
+	LDR  R7, R6, #0
+	ADD  R6, R6, #3
+	LDR  R0, R5, #2        ;R0 = currNode
+	STR  R7, R0, #2        ;currNode->Right = Remove(currNode->right, minNode->data);
+	LDR  R1, R5, #2        ;R1 = currNode
+
+isNullReturn
+	STR  R1, R5, #0   
+
+	LDR  R7, R6, #0  ; pop R3
+
+        ADD  R6, R6, #1
+	
+	LDR  R4, R6, #0  ; pop R3
+
+        ADD  R6, R6, #1
+
+	LDR  R3, R6, #0  ; pop R3
+
+        ADD  R6, R6, #1
+
+
+        
+LDR  R2, R6, #0  ; pop R2
+
+        ADD  R6, R6, #1
+        
+  
+
+        LDR  R1, R6, #0  ; pop R1
+        ADD  R6, R6, #1
+        
+	LDR  R5, R6, #0  ; pop FP
+
+        ADD  R6, R6, #1
+
+	RET
+
+
+;=========================================================================================================
+; GetMinValueNode
+;	params: CurrentNode ( Root initially )
+;
+;	returns the leftmost leaf (minimum value)
+;=========================================================================================================
+GetMinValueNode
+	ADD  R6, R6, #-1 ; push FP
+        
+	STR  R5, R6, #0
+        
+        
+	ADD  R5, R6, #1 ; update FP (point it to the old top of stack)
+     
+   
+        
+	ADD  R6, R6, #-1 ; push R1
+	STR  R1, R6, #0
+
+	ADD  R6, R6, #-1 ; push R2
+
+        STR  R2, R6, #0	
+
+	ADD  R6, R6, #-1 ; push R3
+        STR  R3, R6, #0	
+
+	ADD  R6, R6, #-1 ; push R4
+        STR  R4, R6, #0	
+	 
+	ADD  R6, R6, #-1 ; push R7
+        STR  R7, R6, #0	
+
+	LDR  R1, R5, #1  ; R1 = currNode
+	
+whileNotNull
+	AND  R2, R2, #0
+	ADD  R2, R1, #0  
+	LDR  R1, R1, #1  ; R2 = curr->left;
+	BRnp whileNotNull 
+
+	STR  R2, R5, #0  ; return minValueNode
+
+	LDR  R7, R6, #0  ; pop R3
+
+        ADD  R6, R6, #1
+	
+	LDR  R4, R6, #0  ; pop R3
+
+        ADD  R6, R6, #1
+
+	LDR  R3, R6, #0  ; pop R3
+
+        ADD  R6, R6, #1
+
+
+        
+LDR  R2, R6, #0  ; pop R2
+
+        ADD  R6, R6, #1
+        
+  
+
+        LDR  R1, R6, #0  ; pop R1
+        ADD  R6, R6, #1
+        
+	LDR  R5, R6, #0  ; pop FP
+
+        ADD  R6, R6, #1
+
+	RET
+
+;=========================================================================================================
 ; CalculateDepth
 ;	params: CurrentNode ( Root initially )
 ;
 ;	calculates the maximum depth of the tree, and returns it.
 ;=========================================================================================================
 ; Registers Dictionary
-;
+; R1 - Pointer to the current node
+; R2 - current depth
+; R3 - curr.left
+; R4 - curr.right
+; R5 - FP
+; R6 - Stack
 ;
 CalculateDepth     
 	ADD  R6, R6, #-1 ; push FP
