@@ -172,7 +172,14 @@ nodeK   .FILL x6124
 ;	removes the node that has the same data as given data, and returns the removed node.
 ;=========================================================================================================
 ; Registers Dictionary
-;
+; R0 - Various operations
+; R1 - current Node
+; R2 - current node's data
+; R3 - pData (data passed as the parameter )
+; R4 - tempNode
+; R5 - FP
+; R6 - Stack
+; R7 - to store the returning value from the recursive calls  
 ;
 Remove
 	ADD  R6, R6, #-1 ; push FP
@@ -325,6 +332,10 @@ LDR  R2, R6, #0  ; pop R2
 ;
 ;	returns the leftmost leaf (minimum value)
 ;=========================================================================================================
+; R1 - currNode
+; R2 - currNode.parent
+; R5 - FP
+; R6 - Stack
 GetMinValueNode
 	ADD  R6, R6, #-1 ; push FP
         
@@ -506,7 +517,11 @@ LDR  R2, R6, #0  ; pop R2
 ;	in order traversal of binary search tree
 ;=========================================================================================================
 ; Registers Dictionary
-;
+; R1 - pointer to currNode
+; R2 - curr->left
+; R3 - curr->right
+; R5 - FP
+; R6 - Stack
 ;
 InOrderTraversal
 	ADD  R6, R6, #-1 ; push FP
@@ -551,7 +566,7 @@ InOrderTraversal
 	JSR  Print
 	ADD  R6, R6, #1        ;Clean up the stack that was pushed for the parameter since Print subroutine returns nothing.
 	
-	LDR  R3, R1, #2  ; R2 = node.leftChild
+	LDR  R3, R1, #2    ; R3 = node.rightChild
 	ADD  R6, R6, #-1 
 	STR  R3, R6, #0 
 	JSR  InOrderTraversal  ;InOrderTraversal(node.rightChild)
@@ -599,7 +614,7 @@ LDR  R2, R6, #0  ; pop R2
 ;=========================================================================================================
 ; Registers Dictionary
 ; R1 - Hexadecimal value to be printed
-; R2 -
+; R2 - bitmasking
 ; R5 - FP
 ; R6 - Stack
 ; R7 - Number of bits left for counting loop
@@ -732,59 +747,6 @@ ToStorePrint .FILL #0
 	     .FILL #0
 	     .FILL #0
 	     .FILL #0
-
-
-
-;=========================================================================================================
-; ShiftRight
-;	params: value to be divided by 2
-;
-;	returns the value after division by 2
-;=========================================================================================================
-ShiftRight
-        ; set up the stack
-
-        ADD  R6, R6, #-1 ; push FP
-        STR  R5, R6, #0
-        ADD  R5, R6, #1  ; update FP (point it to the old top of stack)
-        
-        ADD  R6, R6, #-1 ; push R1
-        STR  R1, R6, #0
-        
-        ADD  R6, R6, #-1 ; push R2
-        STR  R2, R6, #0
-        
-        ADD  R6, R6, #-1 ; push R7
-        STR  R7, R6, #0
-
-        ; do the shift
-        
-        LDR  R1, R5, #1  ; get the value to shift
-        AND  R2, R2, #0
-
-        ; divide R1 by 2, storing the result in R2
-divide  ADD  R2, R2, #1
-        ADD  R1, R1, #-2
-        BRzp divide
-        ADD  R2, R2, #-1 ; one step too far
-
-        STR  R2, R5, #0  ; put the result on the stack
-
-        ; clean up the stack
-        
-        LDR  R7, R6, #0  ; pop R7
-        ADD  R6, R6, #1
-        
-        LDR  R2, R6, #0  ; pop R2
-        ADD  R6, R6, #1
-        
-        LDR  R1, R6, #0  ; pop R1
-        ADD  R6, R6, #1
-        
-        LDR  R5, R6, #0  ; pop FP
-        ADD  R6, R6, #1
-        
-        RET
 
 
 ;---------------------------------------------------------------------------------------------------------
@@ -1132,4 +1094,3 @@ LAST	.BLKW 1
 
 
         .end
-
